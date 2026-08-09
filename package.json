@@ -1,0 +1,21 @@
+{
+  "name": "meallink",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @meallink/web",
+    "build": "npm run build -w @meallink/web",
+    "lint": "npm run lint -w @meallink/web",
+    "typecheck": "npm run typecheck -w @meallink/web",
+    "test": "npm run test -w @meallink/web"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  }
+}
