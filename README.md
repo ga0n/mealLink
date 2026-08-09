@@ -1,64 +1,109 @@
 # 한끼이음 (MealLink)
 
-후원한 식사권이 지역의 한 끼로 이어지는 과정을 보여주는 서비스입니다. 현재 저장소에는 **1단계 데모 프론트엔드**와 **2단계 로컬 스마트 컨트랙트**가 포함되어 있습니다. 아직 프론트와 컨트랙트는 연결되지 않았으며 Sepolia를 사용하지 않습니다.
+지역 식사권 후원과 전달 과정을 연결하는 모바일 중심 웹 서비스입니다. 현재 저장소에는 브라우저 가상 데이터로 동작하는 데모 모드와, MetaMask로 로컬 Hardhat 컨트랙트를 사용하는 로컬 블록체인 모드가 함께 있습니다. Sepolia에는 배포하지 않습니다.
 
-## 실행
+## 빠른 시작: 데모 모드
 
 ```bash
 npm install
+copy .env.example apps\web\.env.local
 npm run dev
 ```
 
-브라우저에서 `http://localhost:3000`을 엽니다. 상태를 처음부터 다시 시연하려면 화면 하단의 `데모 초기화`를 누릅니다.
+`apps/web/.env.local`의 `NEXT_PUBLIC_DEMO_MODE=true`를 유지하고 `http://localhost:3000`을 엽니다. MetaMask나 Hardhat 노드가 없어도 후원 → QR 발급 → 식사 제공 흐름이 동작합니다.
 
-## 검증
+## 로컬 블록체인 모드
+
+각 명령은 별도 터미널에서 저장소 루트를 기준으로 실행합니다.
+
+터미널 1 — Hardhat Local 노드:
 
 ```bash
+npm run contracts:node
+```
+
+터미널 2 — 컨트랙트 배포와 캠페인 시드:
+
+```bash
+npm run contracts:deploy:local
+npm run contracts:seed:local
+```
+
+배포 출력의 `MealLinkModule#MealLink` 주소를 `apps/web/.env.local`에 입력합니다.
+
+```dotenv
+NEXT_PUBLIC_DEMO_MODE=false
+NEXT_PUBLIC_CHAIN_ID=31337
+NEXT_PUBLIC_LOCAL_RPC_URL=http://127.0.0.1:8545
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x배포_출력_주소
+```
+
+터미널 3 — 프론트엔드:
+
+```bash
+npm run dev
+```
+
+환경변수를 바꾸면 개발 서버를 반드시 다시 시작해야 합니다.
+
+## MetaMask 등록
+
+네트워크를 직접 추가하거나 화면의 `네트워크 전환`을 누릅니다.
+
+- 네트워크 이름: `Hardhat Local`
+- RPC URL: `http://127.0.0.1:8545`
+- 체인 ID: `31337`
+- 통화 기호: `ETH`
+- 블록 탐색기: 비워 둠
+
+역할별 Hardhat 기본 계정은 다음과 같습니다.
+
+| 계정 번호 | 역할             | 주소                                         |
+| --------- | ---------------- | -------------------------------------------- |
+| #0        | deployer / admin | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` |
+| #1        | welfare agency   | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` |
+| #2        | restaurant       | `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` |
+| #3        | donor            | `0x90F79bf6EB2c4f870365E785982E1f101E93b906` |
+
+MetaMask의 `계정 가져오기`에서 터미널 1에 표시된 해당 계정 번호의 개인키를 복사합니다. 저장소에는 개인키를 기록하지 않습니다.
+
+> 경고: Hardhat 기본 계정과 개인키는 누구나 알고 있는 로컬 테스트 전용 정보입니다. 이 계정에 실제 자산을 보내지 말고, 실제 개인키·시드 문구를 코드·환경파일·문서에 절대 입력하거나 커밋하지 마세요.
+
+역할별 화면 사용 순서:
+
+1. #3 donor로 `/campaign`에서 1장을 후원합니다. 정확히 `0.001 ETH`가 전송됩니다.
+2. #1 welfare agency로 `/agency`에서 QR을 발급합니다. 브라우저에서 만든 32바이트 secret의 `keccak256` 해시만 체인에 기록됩니다.
+3. #2 restaurant로 `/restaurant`에서 발급 QR을 불러오거나 문자를 입력하고 사용 완료합니다.
+4. `/transparency`에서 컨트랙트 통계, 이벤트, 트랜잭션 해시와 블록 번호를 확인합니다. 로컬 네트워크이므로 탐색기 링크는 만들지 않습니다.
+
+`8,000원 상당`은 서비스의 표시 기준가이며 `0.001 ETH`와 환산 관계가 없습니다.
+
+## 검증 명령
+
+```bash
+npm run contracts:compile
+npm run contracts:typecheck
+npm run contracts:test
 npm run typecheck
 npm run lint
 npm test
 npm run build
 ```
 
-## 스마트 컨트랙트
-
-`packages/contracts`는 Hardhat 3와 TypeScript로 구성된 로컬 전용 패키지입니다. native ETH 후원, 기관의 일회용 식사권 발급, QR 해시 검증, 지정 식당 정산과 캠페인 통계를 구현합니다. 수혜자 개인정보와 QR 원문은 컨트랙트 상태에 저장하지 않습니다.
-
-컴파일과 전체 컨트랙트 테스트:
+실행 중인 로컬 노드에서 독립된 전체 온체인 시나리오를 검증하려면:
 
 ```bash
-npm run contracts:compile
-npm run contracts:typecheck
-npm run contracts:test
+npm run contracts:e2e:local
 ```
 
-로컬 Hardhat 노드와 Ignition 배포:
+이 스크립트는 별도 MealLink 인스턴스를 배포한 뒤 캠페인 생성, 후원, QR 해시 발급, 사용 완료, 식당 잔액 증가, 통계 변경, 동일 QR 재사용 실패를 실제 트랜잭션으로 확인합니다.
 
-```bash
-# 터미널 1
-npm run contracts:node
+## 보안 및 상태 분리
 
-# 터미널 2
-npm run contracts:deploy:local
-```
+- `NEXT_PUBLIC_DEMO_MODE=true`에서는 Wagmi 읽기 요청을 비활성화하므로 MetaMask와 노드가 없어도 동작합니다.
+- 데모 상태는 `meallink-demo-v1`, 로컬 QR secret은 `meallink-local-vouchers-v1`에 분리 저장됩니다.
+- QR 원문, 수혜자의 이름·연락처·주소 등 개인정보는 체인에 저장하지 않습니다.
+- 로컬 QR secret은 발급과 사용 데모에 필요한 범위에서 현재 브라우저에만 저장됩니다.
+- `.env`, `.env.local`, Ignition 로컬 배포 상태는 Git에서 제외됩니다.
 
-로컬 노드의 테스트 계정과 ETH는 개발 전용입니다. 공개 네트워크나 실제 자금에 사용하지 마세요. 상세 구조와 보안 원칙은 `packages/contracts/README.md`를 참고하세요.
-
-## 2~3분 데모 순서
-
-1. 메인에서 관악구 가상 캠페인과 64/51/13 통계를 소개합니다.
-2. 캠페인에서 식사권 1장을 선택하고 `데모 후원 시작`을 눌러 가상 지갑 연결과 처리 상태를 확인합니다.
-3. 내 식사권에서 새 식사권의 `전달 대기` 타임라인과 65/51/14 통계를 확인합니다.
-4. 복지기관 화면에서 `USER-018`, 제휴 식당을 선택하고 QR을 발급합니다.
-5. 식당 화면에서 `발급된 QR 불러오기` 후 유효성을 확인하고 `식사 제공 완료`를 누릅니다.
-6. 같은 QR을 다시 검사해 중복 사용이 거부되는지 확인합니다.
-7. 내 식사권의 `한 끼 전달 완료`와 투명성 화면의 최종 65/52/13 통계를 확인합니다.
-
-## 중요 안내
-
-- 모든 기관, 식당, 지갑, 거래 및 수치는 가상 데이터입니다.
-- `8,000원 상당`은 식사권 표시 기준이며 `0.001 Sepolia ETH`와 환산 관계가 없습니다.
-- 개인정보를 수집·저장하지 않고 `USER-018` 같은 익명 번호만 사용합니다.
-- 스마트 컨트랙트는 로컬 Hardhat에서만 구현되었습니다. MetaMask, 프론트 연결과 Sepolia 배포는 아직 하지 않았으므로 실제 자금을 보내지 마세요.
-
-자세한 내용은 `docs/SPEC.md`와 `docs/IMPLEMENTATION_PLAN.md`를 참고하세요.
+상세 명세와 단계별 현황은 `docs/SPEC.md`, `docs/IMPLEMENTATION_PLAN.md`를 참고하세요.

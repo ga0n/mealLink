@@ -15,7 +15,9 @@
     "contracts:typecheck": "npm run typecheck -w @meallink/contracts",
     "contracts:test": "npm run test -w @meallink/contracts",
     "contracts:node": "npm run node -w @meallink/contracts",
-    "contracts:deploy:local": "npm run deploy:local -w @meallink/contracts"
+    "contracts:deploy:local": "npm run deploy:local -w @meallink/contracts",
+    "contracts:seed:local": "npm run seed:local -w @meallink/contracts",
+    "contracts:e2e:local": "npm run e2e:local -w @meallink/contracts"
   },
   "engines": {
     "node": ">=20"

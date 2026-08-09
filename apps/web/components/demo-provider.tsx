@@ -1,9 +1,19 @@
 "use client";
 
-import { createContext, useContext, useEffect, useReducer, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useState,
+} from "react";
 import { DemoAction, DemoState, demoReducer, initialState } from "@/lib/demo";
 
-type DemoContextValue = { state: DemoState; dispatch: React.Dispatch<DemoAction>; ready: boolean };
+type DemoContextValue = {
+  state: DemoState;
+  dispatch: React.Dispatch<DemoAction>;
+  ready: boolean;
+};
 const DemoContext = createContext<DemoContextValue | null>(null);
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
@@ -14,13 +24,22 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as DemoState;
-        if (Array.isArray(parsed.vouchers)) dispatch({ type: "HYDRATE", state: parsed });
-      } catch { localStorage.removeItem("meallink-demo-v1"); }
+        if (Array.isArray(parsed.vouchers))
+          dispatch({ type: "HYDRATE", state: parsed });
+      } catch {
+        localStorage.removeItem("meallink-demo-v1");
+      }
     }
     setReady(true);
   }, []);
-  useEffect(() => { if (ready) localStorage.setItem("meallink-demo-v1", JSON.stringify(state)); }, [state, ready]);
-  return <DemoContext.Provider value={{ state, dispatch, ready }}>{children}</DemoContext.Provider>;
+  useEffect(() => {
+    if (ready) localStorage.setItem("meallink-demo-v1", JSON.stringify(state));
+  }, [state, ready]);
+  return (
+    <DemoContext.Provider value={{ state, dispatch, ready }}>
+      {children}
+    </DemoContext.Provider>
+  );
 }
 
 export function useDemo() {

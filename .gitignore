@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.next-dev/
 out/
 .env
 .env.local
@@ -8,6 +9,7 @@ packages/contracts/artifacts/
 packages/contracts/cache/
 packages/contracts/types/
 packages/contracts/ignition/deployments/
+packages/contracts/.local-deployment.json
 *.log
 *.tsbuildinfo
 .DS_Store

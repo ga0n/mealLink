@@ -9,7 +9,9 @@
     "test": "hardhat test",
     "clean": "hardhat clean",
     "node": "hardhat node",
-    "deploy:local": "hardhat ignition deploy ignition/modules/MealLink.ts --network localhost"
+    "deploy:local": "hardhat run scripts/deploy-local.ts --network localhost",
+    "seed:local": "hardhat run scripts/seed-local.ts --network localhost",
+    "e2e:local": "hardhat run scripts/e2e-local.ts --network localhost"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.7",

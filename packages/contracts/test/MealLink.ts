@@ -77,7 +77,11 @@ describe("MealLink", function () {
       const mealLink = await ethers.deployContract("MealLink", [admin.address]);
 
       await expect(
-        mealLink.createCampaign(agency.address, GOAL, ethers.parseEther("0.002")),
+        mealLink.createCampaign(
+          agency.address,
+          GOAL,
+          ethers.parseEther("0.002"),
+        ),
       ).to.be.revertedWithCustomError(mealLink, "InvalidVoucherPrice");
     });
 
@@ -242,7 +246,8 @@ describe("MealLink", function () {
     });
 
     it("blocks a reentrant redemption during restaurant settlement", async function () {
-      const { mealLink, agency, donor } = await networkHelpers.loadFixture(deployFixture);
+      const { mealLink, agency, donor } =
+        await networkHelpers.loadFixture(deployFixture);
       const attacker = await ethers.deployContract("ReentrantRestaurant");
       const secret = ethers.toUtf8Bytes("reentrant-secret");
 
@@ -254,7 +259,9 @@ describe("MealLink", function () {
 
       expect(await attacker.reentryAttempted()).to.equal(true);
       expect(await attacker.reentryBlocked()).to.equal(true);
-      expect(await ethers.provider.getBalance(await attacker.getAddress())).to.equal(PRICE);
+      expect(
+        await ethers.provider.getBalance(await attacker.getAddress()),
+      ).to.equal(PRICE);
       expect((await mealLink.getCampaignStats(1)).redeemed).to.equal(1);
     });
   });
