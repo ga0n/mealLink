@@ -4,6 +4,10 @@ out/
 .env
 .env.local
 coverage/
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/types/
+packages/contracts/ignition/deployments/
 *.log
 *.tsbuildinfo
 .DS_Store

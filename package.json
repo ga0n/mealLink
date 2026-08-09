@@ -10,7 +10,12 @@
     "build": "npm run build -w @meallink/web",
     "lint": "npm run lint -w @meallink/web",
     "typecheck": "npm run typecheck -w @meallink/web",
-    "test": "npm run test -w @meallink/web"
+    "test": "npm run test -w @meallink/web",
+    "contracts:compile": "npm run compile -w @meallink/contracts",
+    "contracts:typecheck": "npm run typecheck -w @meallink/contracts",
+    "contracts:test": "npm run test -w @meallink/contracts",
+    "contracts:node": "npm run node -w @meallink/contracts",
+    "contracts:deploy:local": "npm run deploy:local -w @meallink/contracts"
   },
   "engines": {
     "node": ">=20"
