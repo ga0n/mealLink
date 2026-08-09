@@ -1,41 +1,53 @@
-# MealLink 구현 계획 및 진행 현황
+# MealLink 구현 계획 및 최종 진행 현황
 
 ## 1단계 — 반응형 데모 프론트엔드 (완료)
 
-- Next.js App Router 기반 모바일 앱형 UI
-- 브라우저 가상 데이터 기반 후원 → QR 발급 → 식사 제공 → 전달 완료
+- 모바일 앱형 Next.js UI
+- 가상 데이터 후원 → QR 발급 → 식사 제공 → 전달 완료
 - 데모 상태 저장, QR 다운로드·직접 입력, 중복 사용 방지
-- 반응형 화면과 기본 테스트·빌드 검증
 
 ## 2단계 — 스마트 컨트랙트 (완료)
 
-- Hardhat 3 + TypeScript + Solidity 프로젝트
+- Hardhat 3, TypeScript, Solidity, OpenZeppelin
 - native ETH 후원, 기관 발급, 지정 식당 사용 및 정산
-- QR 해시 저장, exact payment, 역할 제어, Pausable, ReentrancyGuard, CEI
-- 캠페인별 후원·발급·사용·대기 통계와 이벤트
-- 정상·오류·권한·재진입을 포함한 컨트랙트 테스트 15개
+- exact payment, 역할 제어, Pausable, ReentrancyGuard, Checks-Effects-Interactions
+- QR 해시만 저장하고 개인정보와 QR 원문은 저장하지 않음
+- 컨트랙트 테스트 15개
 
-## 3단계 — 로컬 블록체인 연동 (완료)
+## 3단계 — Hardhat Local 연동 (완료)
 
-- Wagmi 3, Viem 2, TanStack Query, MetaMask 연결·해제
-- Hardhat Local(31337) 네트워크 표시와 추가·전환 요청
-- SSR 모드 Wagmi 구성 및 클라이언트 마운트 이후 지갑 UI 표시
-- `NEXT_PUBLIC_DEMO_MODE` 기반 데모/로컬 모드 분리
-- 환경변수 컨트랙트 주소와 RPC 구성, 로컬 노드·배포·시드 스크립트
-- donor의 exact `0.001 ETH` 후원, 승인·제출·확정·오류 상태
-- agency 권한 확인, 안전한 32바이트 QR secret 생성, 해시만 온체인 발급
-- restaurant 지정 지갑 확인, QR 검증·사용·정산, 중복 사용 오류 안내
-- 온체인 통계 재조회, 이벤트 타임라인, 해시·블록 번호 표시
-- 데모 상태와 로컬 QR 저장소 키 분리
-- 한국어 Web3 오류 매핑 및 유틸리티 테스트
-- 로컬 전체 트랜잭션 시나리오 자동 검증
+- Wagmi, Viem, MetaMask, Hardhat Local chain ID 31337
+- 후원·발급·사용 트랜잭션과 온체인 통계·이벤트 연결
+- 로컬 배포·초기화·전체 시나리오 자동 검증
+- Demo와 Local 상태 저장소 분리
 
-## 4단계 — Sepolia 및 출시 준비 (남음)
+## 4단계 — Sepolia 및 최종 발표 환경 (코드·문서 완료, 실제 배포 대기)
 
-- Sepolia RPC와 배포 계정의 안전한 비밀값 관리
-- Sepolia 컨트랙트 배포·검증과 운영 주소 설정
-- 체인별 환경 구성 및 Sepolia 탐색기 링크
-- 테스트 ETH 안내, 실제 네트워크 비용·확정 시간 UX
-- 배포 환경 E2E, 접근성, 모니터링과 운영 보안 최종 점검
+- Hardhat Sepolia chain ID 11155111와 서버 전용 비밀 환경변수
+- 배포 전 chain ID·deployer 잔액 검사
+- deployer, welfare agency, restaurant 테스트 ETH 사전 검사
+- 비밀값 없는 로컬 배포 JSON과 중복 배포 방어
+- 동일 캠페인 재실행 방어와 환경 공개 주소 일치 검사
+- API 키가 있을 때만 실행하는 Etherscan 소스 검증
+- Demo / Hardhat Local / Sepolia 3모드 프론트
+- Sepolia 전환 요청, 테스트넷 안내, Etherscan 트랜잭션·주소 링크
+- 거래 전 역할별 잔액·예상 가스 검사
+- 승인·제출·확정·성공·실패 UX와 중복 클릭 방지
+- 브라우저 새로고침 후 제출 트랜잭션 영수증 복구
+- RPC 연결 실패와 일시적 지연의 한국어 오류 분리
+- Sepolia 전용 QR 저장소와 Demo/Local 저장소 분리
+- 2~3분 발표 시나리오와 Demo 장애 대응 절차
 
-이번 3단계에서는 Sepolia 배포와 연결을 의도적으로 수행하지 않습니다.
+현재 실행 환경에는 `SEPOLIA_RPC_URL`, `SEPOLIA_DEPLOYER_PRIVATE_KEY`, `SEPOLIA_AGENCY_ADDRESS`, `SEPOLIA_RESTAURANT_ADDRESS`, `SEPOLIA_DONOR_ADDRESS`, `ETHERSCAN_API_KEY`가 없습니다. 따라서 실제 Sepolia 배포·캠페인 생성·전체 흐름·소스 검증은 수행하지 않으며 완료로 표시하지 않습니다.
+
+## 실제 Sepolia 실행 후 남는 최종 확인
+
+1. 전용 테스트 계정과 역할별 공개 주소 준비
+2. 각 공개 주소에 필요한 Sepolia 테스트 ETH 준비
+3. 배포와 캠페인 초기화
+4. donor 후원, agency QR 발급, restaurant 사용 완료
+5. 최종 통계 1 / 1 / 1 / 0과 중복 QR 거부
+6. 배포·캠페인·후원·발급·사용 Etherscan 링크 기록
+7. 선택적 Etherscan 소스 검증
+
+Ethereum mainnet 배포는 계획과 코드 범위에 포함되지 않습니다.

@@ -14,7 +14,8 @@ import { DemoTag, Eyebrow, Notice, StatCard } from "@/components/ui";
 import { useDemo } from "@/components/demo-provider";
 import { WalletPanel } from "@/components/wallet-panel";
 import { campaignStats, restaurants } from "@/lib/demo";
-import { IS_DEMO_MODE, CONTRACT_ADDRESS } from "@/lib/web3/mode";
+import { IS_DEMO_MODE, getPublicConfigurationError } from "@/lib/web3/mode";
+import { IS_SEPOLIA } from "@/lib/web3/config";
 import { useOnchainCampaign } from "@/hooks/use-onchain-campaign";
 import { getWeb3ErrorMessage } from "@/lib/web3/errors";
 
@@ -76,10 +77,13 @@ export default function CampaignPage() {
         <div className="shell two-column">
           <div className="content-column">
             <WalletPanel />
-            {!IS_DEMO_MODE && !CONTRACT_ADDRESS && (
+            {!IS_DEMO_MODE && getPublicConfigurationError() && (
+              <Notice tone="warm">{getPublicConfigurationError()}</Notice>
+            )}
+            {!IS_DEMO_MODE && IS_SEPOLIA && (
               <Notice tone="warm">
-                NEXT_PUBLIC_CONTRACT_ADDRESS가 없습니다. 로컬 배포 후 주소를
-                설정해 주세요.
+                Sepolia 테스트넷 · 실제 결제가 아닙니다. 테스트 ETH만
+                사용합니다.
               </Notice>
             )}
             {!IS_DEMO_MODE && onchain.error && (

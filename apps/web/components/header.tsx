@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { HeartHandshake, ShieldCheck } from "lucide-react";
 import { IS_DEMO_MODE } from "@/lib/web3/mode";
+import { IS_SEPOLIA } from "@/lib/web3/config";
 
 export function Header() {
   return (
@@ -16,7 +17,9 @@ export function Header() {
             한끼이음<small>MealLink</small>
           </span>
         </Link>
-        <span className="demo-badge">{IS_DEMO_MODE ? "DEMO" : "LOCAL"}</span>
+        <span className="demo-badge">
+          {IS_DEMO_MODE ? "DEMO" : IS_SEPOLIA ? "SEPOLIA" : "LOCAL"}
+        </span>
         <Link
           className="header-action"
           href="/transparency"

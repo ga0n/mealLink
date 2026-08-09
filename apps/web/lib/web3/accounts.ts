@@ -1,4 +1,6 @@
 import type { Address } from "viem";
+import { getAddress, isAddress } from "viem";
+import { IS_SEPOLIA } from "./config";
 
 export const LOCAL_ACCOUNTS = {
   admin: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" as Address,
@@ -13,6 +15,18 @@ export const LOCAL_RESTAURANTS = [
     address: LOCAL_ACCOUNTS.restaurant,
   },
 ] as const;
+
+export function getConfiguredRestaurant():
+  | {
+      name: string;
+      address: Address;
+    }
+  | undefined {
+  if (!IS_SEPOLIA) return LOCAL_RESTAURANTS[0];
+  const value = process.env.NEXT_PUBLIC_SEPOLIA_RESTAURANT_ADDRESS;
+  if (!value || !isAddress(value)) return undefined;
+  return { name: "Sepolia 지정 식당", address: getAddress(value) };
+}
 
 export function shortenAddress(address?: string) {
   if (!address) return "";

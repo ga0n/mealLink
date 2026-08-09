@@ -16,15 +16,25 @@ import { WalletPanel } from "@/components/wallet-panel";
 import { parseQrValue, qrValue } from "@/lib/demo";
 import { DemoTag, Eyebrow, Notice } from "@/components/ui";
 import { CONTRACT_ADDRESS, IS_DEMO_MODE } from "@/lib/web3/mode";
-import { HARDHAT_CHAIN_ID } from "@/lib/web3/config";
+import {
+  ACTIVE_CHAIN_ID,
+  ACTIVE_NETWORK_NAME,
+  IS_SEPOLIA,
+} from "@/lib/web3/config";
 import { mealLinkAbi } from "@/lib/web3/contract";
 import { getWeb3ErrorMessage } from "@/lib/web3/errors";
 import {
   hashQrSecret,
   loadLocalVouchers,
+  encodeLocalVoucher,
   parseLocalVoucher,
 } from "@/lib/web3/qr";
 import { useOnchainCampaign } from "@/hooks/use-onchain-campaign";
+import {
+  savePendingTransaction,
+  updateStoredTransaction,
+} from "@/lib/web3/pending";
+import { transactionExplorerUrl } from "@/lib/web3/links";
 
 type Result = {
   kind: "valid" | "used" | "invalid";
@@ -37,7 +47,7 @@ export default function RestaurantPage() {
   const { state, dispatch } = useDemo();
   const onchain = useOnchainCampaign();
   const connection = useConnection();
-  const publicClient = usePublicClient({ chainId: HARDHAT_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
   const [input, setInput] = useState("");
   const [result, setResult] = useState<Result>(null);
@@ -141,7 +151,7 @@ export default function RestaurantPage() {
         message:
           "이 브라우저에 저장된 QR이 없습니다. QR 문자를 직접 입력해 주세요.",
       });
-    const value = `MEALLINK:LOCAL:${voucher.voucherId}:${voucher.secret}`;
+    const value = encodeLocalVoucher(voucher);
     setInput(value);
     await validate(value);
   };
@@ -156,22 +166,48 @@ export default function RestaurantPage() {
         dispatch({ type: "REDEEM", secret: parseQrValue(input) });
       } else {
         if (!CONTRACT_ADDRESS) throw new Error("contract address missing");
-        if (connection.chainId !== HARDHAT_CHAIN_ID)
+        if (connection.chainId !== ACTIVE_CHAIN_ID)
           throw new Error("chain mismatch");
         if (!publicClient) throw new Error("RPC connection failed");
         const parsed = parseLocalVoucher(input);
         if (!parsed) throw new Error("InvalidQrSecret");
+        if (!connection.address) throw new Error("UnauthorizedRestaurant");
         setStatus("MetaMask 승인을 기다리고 있습니다.");
+        const [walletBalance, gasPrice, estimatedGas] = await Promise.all([
+          publicClient.getBalance({ address: connection.address }),
+          publicClient.getGasPrice(),
+          publicClient.estimateContractGas({
+            account: connection.address,
+            address: CONTRACT_ADDRESS,
+            abi: mealLinkAbi,
+            functionName: "redeemVoucher",
+            args: [parsed.voucherId, parsed.secret],
+          }),
+        ]);
+        if (walletBalance < estimatedGas * gasPrice)
+          throw new Error("insufficient funds for restaurant gas");
         const hash = await writeContractAsync({
           address: CONTRACT_ADDRESS,
           abi: mealLinkAbi,
           functionName: "redeemVoucher",
           args: [parsed.voucherId, parsed.secret],
-          chainId: HARDHAT_CHAIN_ID,
+          chainId: ACTIVE_CHAIN_ID,
         });
         setTransactionHash(hash);
+        savePendingTransaction(hash, "redeem");
         setStatus("트랜잭션이 제출되었습니다. 정산 확정을 기다립니다.");
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          confirmations: 1,
+          timeout: 300_000,
+        });
+        updateStoredTransaction(
+          hash,
+          receipt.status === "success" ? "confirmed" : "failed",
+          receipt.blockNumber,
+        );
+        if (receipt.status !== "success")
+          throw new Error("transaction reverted");
         setStatus(
           `블록 #${receipt.blockNumber.toString()}에서 0.001 ETH 정산이 확정되었습니다.`,
         );
@@ -208,6 +244,13 @@ export default function RestaurantPage() {
           <DemoTag>{IS_DEMO_MODE ? "DEMO" : "ONCHAIN"}</DemoTag>
         </div>
         <WalletPanel />
+        {!IS_DEMO_MODE && (
+          <Notice tone="warm">
+            {IS_SEPOLIA
+              ? "Sepolia 테스트넷 · 실제 결제가 아닙니다. 정산 확정 전에는 페이지를 닫지 마세요."
+              : `${ACTIVE_NETWORK_NAME} 테스트 환경입니다.`}
+          </Notice>
+        )}
         <div className="workspace-grid">
           <div className="scanner-card">
             <div className="scanner-visual">
@@ -239,7 +282,7 @@ export default function RestaurantPage() {
               placeholder={
                 IS_DEMO_MODE
                   ? "MEALLINK:GANAK:ML-..."
-                  : "MEALLINK:LOCAL:1:0x..."
+                  : `MEALLINK:${IS_SEPOLIA ? "SEPOLIA" : "LOCAL"}:1:0x...`
               }
             />
             <button
@@ -290,7 +333,18 @@ export default function RestaurantPage() {
                     {transactionHash && (
                       <>
                         <br />
-                        <span className="hash-text">{transactionHash}</span>
+                        {transactionExplorerUrl(transactionHash) ? (
+                          <a
+                            className="hash-text"
+                            href={transactionExplorerUrl(transactionHash)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Etherscan에서 확인
+                          </a>
+                        ) : (
+                          <span className="hash-text">{transactionHash}</span>
+                        )}
                       </>
                     )}
                   </p>

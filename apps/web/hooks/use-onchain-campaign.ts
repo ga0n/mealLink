@@ -3,6 +3,7 @@
 import { useReadContract } from "wagmi";
 import { CAMPAIGN_ID, mealLinkAbi } from "@/lib/web3/contract";
 import { CONTRACT_ADDRESS, IS_DEMO_MODE } from "@/lib/web3/mode";
+import { ACTIVE_CHAIN_ID } from "@/lib/web3/config";
 
 export function useOnchainCampaign() {
   const enabled = !IS_DEMO_MODE && Boolean(CONTRACT_ADDRESS);
@@ -11,6 +12,7 @@ export function useOnchainCampaign() {
     abi: mealLinkAbi,
     functionName: "getCampaignStats",
     args: [CAMPAIGN_ID],
+    chainId: ACTIVE_CHAIN_ID,
     query: { enabled, refetchInterval: 4_000, retry: 1 },
   });
   const campaign = useReadContract({
@@ -18,6 +20,7 @@ export function useOnchainCampaign() {
     abi: mealLinkAbi,
     functionName: "getCampaign",
     args: [CAMPAIGN_ID],
+    chainId: ACTIVE_CHAIN_ID,
     query: { enabled, refetchInterval: 4_000, retry: 1 },
   });
 

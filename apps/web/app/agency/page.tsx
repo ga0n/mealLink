@@ -18,8 +18,12 @@ import { qrValue, restaurants } from "@/lib/demo";
 import { DemoTag, Eyebrow, Notice, StatCard } from "@/components/ui";
 import { useOnchainCampaign } from "@/hooks/use-onchain-campaign";
 import { CAMPAIGN_ID, mealLinkAbi } from "@/lib/web3/contract";
-import { HARDHAT_CHAIN_ID } from "@/lib/web3/config";
-import { LOCAL_RESTAURANTS } from "@/lib/web3/accounts";
+import {
+  ACTIVE_CHAIN_ID,
+  ACTIVE_NETWORK_NAME,
+  IS_SEPOLIA,
+} from "@/lib/web3/config";
+import { getConfiguredRestaurant } from "@/lib/web3/accounts";
 import { CONTRACT_ADDRESS, IS_DEMO_MODE } from "@/lib/web3/mode";
 import { getWeb3ErrorMessage } from "@/lib/web3/errors";
 import {
@@ -28,12 +32,17 @@ import {
   hashQrSecret,
   saveLocalVoucher,
 } from "@/lib/web3/qr";
+import {
+  savePendingTransaction,
+  updateStoredTransaction,
+} from "@/lib/web3/pending";
+import { transactionExplorerUrl } from "@/lib/web3/links";
 
 export default function AgencyPage() {
   const { state, dispatch } = useDemo();
   const onchain = useOnchainCampaign();
   const connection = useConnection();
-  const publicClient = usePublicClient({ chainId: HARDHAT_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
   const availableDemo = state.vouchers.filter(
     (voucher) => voucher.status === "donated",
@@ -58,6 +67,7 @@ export default function AgencyPage() {
     [state.vouchers],
   );
   const agencyAddress = onchain.campaign?.agency;
+  const configuredRestaurant = getConfiguredRestaurant();
   const isAgency = Boolean(
     connection.address &&
     agencyAddress &&
@@ -68,7 +78,8 @@ export default function AgencyPage() {
     : Boolean(
         CONTRACT_ADDRESS &&
         isAgency &&
-        connection.chainId === HARDHAT_CHAIN_ID &&
+        connection.chainId === ACTIVE_CHAIN_ID &&
+        configuredRestaurant &&
         (onchain.stats?.availableToIssue ?? 0) > 0,
       );
 
@@ -105,18 +116,45 @@ export default function AgencyPage() {
       if (!publicClient) throw new Error("RPC connection failed");
 
       const secret = createQrSecret();
-      const targetRestaurant = LOCAL_RESTAURANTS[0];
+      const targetRestaurant = configuredRestaurant;
+      if (!targetRestaurant)
+        throw new Error("NEXT_PUBLIC_SEPOLIA_RESTAURANT_ADDRESS missing");
       setStatus("MetaMask 승인을 기다리고 있습니다.");
+      if (!connection.address) throw new Error("UnauthorizedAgency");
+      const [walletBalance, gasPrice, estimatedGas] = await Promise.all([
+        publicClient.getBalance({ address: connection.address }),
+        publicClient.getGasPrice(),
+        publicClient.estimateContractGas({
+          account: connection.address,
+          address: CONTRACT_ADDRESS,
+          abi: mealLinkAbi,
+          functionName: "issueVoucher",
+          args: [CAMPAIGN_ID, targetRestaurant.address, hashQrSecret(secret)],
+        }),
+      ]);
+      if (walletBalance < estimatedGas * gasPrice)
+        throw new Error("insufficient funds for agency gas");
       const hash = await writeContractAsync({
         address: CONTRACT_ADDRESS,
         abi: mealLinkAbi,
         functionName: "issueVoucher",
         args: [CAMPAIGN_ID, targetRestaurant.address, hashQrSecret(secret)],
-        chainId: HARDHAT_CHAIN_ID,
+        chainId: ACTIVE_CHAIN_ID,
       });
       setTransactionHash(hash);
+      savePendingTransaction(hash, "issue");
       setStatus("트랜잭션이 제출되었습니다. 블록 확정을 기다립니다.");
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 1,
+        timeout: 300_000,
+      });
+      updateStoredTransaction(
+        hash,
+        receipt.status === "success" ? "confirmed" : "failed",
+        receipt.blockNumber,
+      );
+      if (receipt.status !== "success") throw new Error("transaction reverted");
       const logs = parseEventLogs({
         abi: mealLinkAbi,
         logs: receipt.logs,
@@ -249,15 +287,15 @@ export default function AgencyPage() {
                 onChange={(event) => setRestaurant(event.target.value)}
                 disabled={!IS_DEMO_MODE}
               >
-                {IS_DEMO_MODE
-                  ? restaurants.map((name) => (
-                      <option key={name}>{name}</option>
-                    ))
-                  : LOCAL_RESTAURANTS.map((item) => (
-                      <option key={item.address}>
-                        {item.name} · {item.address}
-                      </option>
-                    ))}
+                {IS_DEMO_MODE ? (
+                  restaurants.map((name) => <option key={name}>{name}</option>)
+                ) : configuredRestaurant ? (
+                  <option key={configuredRestaurant.address}>
+                    {configuredRestaurant.name} · {configuredRestaurant.address}
+                  </option>
+                ) : (
+                  <option>지정 식당 주소 설정 필요</option>
+                )}
               </select>
             </label>
             {!IS_DEMO_MODE && !isAgency && (
@@ -271,7 +309,18 @@ export default function AgencyPage() {
                 {transactionHash && (
                   <>
                     <br />
-                    <span className="hash-text">{transactionHash}</span>
+                    {transactionExplorerUrl(transactionHash) ? (
+                      <a
+                        className="hash-text"
+                        href={transactionExplorerUrl(transactionHash)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Etherscan에서 확인
+                      </a>
+                    ) : (
+                      <span className="hash-text">{transactionHash}</span>
+                    )}
                   </>
                 )}
               </p>
@@ -343,6 +392,13 @@ export default function AgencyPage() {
           이용자의 이름, 연락처, 주소, 소득 정보는 입력하거나 저장하지 않습니다.
           로컬 QR secret은 이 브라우저에만 보관됩니다.
         </Notice>
+        {!IS_DEMO_MODE && (
+          <Notice tone="warm">
+            {IS_SEPOLIA
+              ? "Sepolia 테스트넷 · 실제 결제가 아닙니다. 처리 중에는 페이지를 닫지 마세요."
+              : `${ACTIVE_NETWORK_NAME} 테스트 환경입니다.`}
+          </Notice>
+        )}
       </div>
     </section>
   );

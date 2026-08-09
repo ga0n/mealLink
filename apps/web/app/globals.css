@@ -2133,6 +2133,47 @@ main {
   color: var(--green);
 }
 
+.mode-chip.sepolia {
+  background: #e8e4ff;
+  color: #4f3bb8;
+}
+
+.recovered-transaction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f3f5f4;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.recovered-transaction.pending {
+  background: #fff5e9;
+  color: #8d4d14;
+}
+
+.recovered-transaction.confirmed {
+  background: var(--mint-light);
+  color: var(--green);
+}
+
+.recovered-transaction.failed {
+  background: #fff0ef;
+  color: #a73b36;
+}
+
+.recovered-transaction a,
+.wallet-connected a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  font-weight: 800;
+}
+
 .wallet-warning {
   flex-wrap: wrap;
   padding: 11px;

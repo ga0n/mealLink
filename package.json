@@ -17,7 +17,10 @@
     "contracts:node": "npm run node -w @meallink/contracts",
     "contracts:deploy:local": "npm run deploy:local -w @meallink/contracts",
     "contracts:seed:local": "npm run seed:local -w @meallink/contracts",
-    "contracts:e2e:local": "npm run e2e:local -w @meallink/contracts"
+    "contracts:e2e:local": "npm run e2e:local -w @meallink/contracts",
+    "contracts:deploy:sepolia": "npm run deploy:sepolia -w @meallink/contracts",
+    "contracts:seed:sepolia": "npm run seed:sepolia -w @meallink/contracts",
+    "contracts:verify:sepolia": "npm run verify:sepolia -w @meallink/contracts"
   },
   "engines": {
     "node": ">=20"

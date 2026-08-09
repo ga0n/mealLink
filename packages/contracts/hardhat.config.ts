@@ -1,8 +1,9 @@
 import toolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
-import { defineConfig } from "hardhat/config";
+import hardhatVerify from "@nomicfoundation/hardhat-verify";
+import { configVariable, defineConfig } from "hardhat/config";
 
 export default defineConfig({
-  plugins: [toolboxMochaEthers],
+  plugins: [toolboxMochaEthers, hardhatVerify],
   networks: {
     localhost: {
       type: "http",
@@ -10,6 +11,18 @@ export default defineConfig({
       chainId: 31337,
       url: "http://127.0.0.1:8545",
       accounts: "remote",
+    },
+    sepolia: {
+      type: "http",
+      chainType: "l1",
+      chainId: 11155111,
+      url: configVariable("SEPOLIA_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_DEPLOYER_PRIVATE_KEY")],
+    },
+  },
+  verify: {
+    etherscan: {
+      apiKey: configVariable("ETHERSCAN_API_KEY"),
     },
   },
   solidity: {

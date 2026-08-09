@@ -3,13 +3,15 @@ node_modules/
 .next-dev/
 out/
 .env
-.env.local
+.env.*
+!.env.example
 coverage/
 packages/contracts/artifacts/
 packages/contracts/cache/
 packages/contracts/types/
 packages/contracts/ignition/deployments/
 packages/contracts/.local-deployment.json
+packages/contracts/deployments/
 *.log
 *.tsbuildinfo
 .DS_Store

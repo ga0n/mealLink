@@ -1,3 +1,5 @@
+import { ACTIVE_NETWORK_NAME, IS_SEPOLIA } from "./config";
+
 export function getWeb3ErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error ?? "");
   const lower = message.toLowerCase();
@@ -14,13 +16,23 @@ export function getWeb3ErrorMessage(error: unknown): string {
     lower.includes("chain") &&
     (lower.includes("mismatch") || lower.includes("not configured"))
   )
-    return "Hardhat Local 네트워크로 전환한 뒤 다시 시도해 주세요.";
+    return `${ACTIVE_NETWORK_NAME} 네트워크로 전환한 뒤 다시 시도해 주세요.`;
   if (
     lower.includes("failed to fetch") ||
     lower.includes("connection refused") ||
     lower.includes("http request failed")
   )
-    return "로컬 Hardhat 노드에 연결할 수 없습니다. 노드가 실행 중인지 확인해 주세요.";
+    return IS_SEPOLIA
+      ? "Sepolia RPC에 연결할 수 없습니다. RPC 설정을 확인하거나 잠시 후 다시 시도해 주세요."
+      : "로컬 Hardhat 노드에 연결할 수 없습니다. 노드가 실행 중인지 확인해 주세요.";
+  if (
+    lower.includes("timeout") ||
+    lower.includes("timed out") ||
+    lower.includes("polling")
+  )
+    return "네트워크 응답이 지연되고 있습니다. 트랜잭션이 실패한 것은 아닐 수 있으니 잠시 후 다시 확인해 주세요.";
+  if (lower.includes("transaction reverted"))
+    return "트랜잭션이 블록에서 실패했습니다. Etherscan 또는 지갑 내역을 확인해 주세요.";
   if (lower.includes("invalidqrsecret") || lower.includes("invalid qr"))
     return "올바르지 않은 QR입니다. 식사권 정보를 다시 확인해 주세요.";
   if (
@@ -49,7 +61,9 @@ export function getWeb3ErrorMessage(error: unknown): string {
   if (lower.includes("paused"))
     return "현재 컨트랙트가 일시 중지되어 있습니다.";
   if (lower.includes("contract address"))
-    return "로컬 컨트랙트 주소가 설정되지 않았습니다. 환경변수를 확인해 주세요.";
+    return "컨트랙트 주소가 설정되지 않았습니다. 환경변수를 확인해 주세요.";
+  if (lower.includes("next_public_sepolia_restaurant_address"))
+    return "Sepolia 지정 식당 공개 주소가 설정되지 않았습니다.";
 
   return "블록체인 요청을 처리하지 못했습니다. 지갑과 로컬 노드 상태를 확인해 주세요.";
 }

@@ -1,6 +1,9 @@
 import { keccak256, type Address, type Hex } from "viem";
+import { IS_SEPOLIA } from "./config";
 
-export const LOCAL_VOUCHER_STORAGE_KEY = "meallink-local-vouchers-v1";
+export const LOCAL_VOUCHER_STORAGE_KEY = IS_SEPOLIA
+  ? "meallink-sepolia-vouchers-v1"
+  : "meallink-local-vouchers-v1";
 
 export interface LocalVoucherSecret {
   voucherId: string;
@@ -25,13 +28,16 @@ export function hashQrSecret(secret: Hex) {
 export function encodeLocalVoucher(
   voucher: Pick<LocalVoucherSecret, "voucherId" | "secret">,
 ) {
-  return `MEALLINK:LOCAL:${voucher.voucherId}:${voucher.secret}`;
+  return `MEALLINK:${IS_SEPOLIA ? "SEPOLIA" : "LOCAL"}:${voucher.voucherId}:${voucher.secret}`;
 }
 
 export function parseLocalVoucher(value: string) {
+  const expectedNetwork = IS_SEPOLIA ? "SEPOLIA" : "LOCAL";
   const match = value
     .trim()
-    .match(/^MEALLINK:LOCAL:(\d+):(0x[0-9a-fA-F]{64})$/);
+    .match(
+      new RegExp(`^MEALLINK:${expectedNetwork}:(\\d+):(0x[0-9a-fA-F]{64})$`),
+    );
   if (!match) return undefined;
   return { voucherId: BigInt(match[1]), secret: match[2] as Hex };
 }

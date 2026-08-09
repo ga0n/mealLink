@@ -7,11 +7,23 @@ import { useDemo } from "@/components/demo-provider";
 import { WalletPanel } from "@/components/wallet-panel";
 import { campaignStats } from "@/lib/demo";
 import { DemoTag, Eyebrow, Notice, StatCard } from "@/components/ui";
-import { CONTRACT_ADDRESS, IS_DEMO_MODE } from "@/lib/web3/mode";
-import { HARDHAT_CHAIN_ID } from "@/lib/web3/config";
+import {
+  CONTRACT_ADDRESS,
+  CONTRACT_DEPLOYMENT_BLOCK,
+  IS_DEMO_MODE,
+} from "@/lib/web3/mode";
+import {
+  ACTIVE_CHAIN_ID,
+  ACTIVE_NETWORK_NAME,
+  IS_SEPOLIA,
+} from "@/lib/web3/config";
 import { CAMPAIGN_ID, mealLinkAbi } from "@/lib/web3/contract";
 import { useOnchainCampaign } from "@/hooks/use-onchain-campaign";
 import { getWeb3ErrorMessage } from "@/lib/web3/errors";
+import {
+  addressExplorerUrl,
+  transactionExplorerUrl,
+} from "@/lib/web3/links";
 
 type ChainEvent = {
   type: string;
@@ -24,7 +36,7 @@ export default function TransparencyPage() {
   const { state } = useDemo();
   const demoStats = campaignStats(state);
   const onchain = useOnchainCampaign();
-  const publicClient = usePublicClient({ chainId: HARDHAT_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID });
   const [chainEvents, setChainEvents] = useState<ChainEvent[]>([]);
   const [eventError, setEventError] = useState("");
   const settlements = state.vouchers.filter(
@@ -69,21 +81,21 @@ export default function TransparencyPage() {
             abi: mealLinkAbi,
             eventName: "DonationMade",
             args: { campaignId: CAMPAIGN_ID },
-            fromBlock: 0n,
+            fromBlock: CONTRACT_DEPLOYMENT_BLOCK,
           }),
           publicClient.getContractEvents({
             address: CONTRACT_ADDRESS,
             abi: mealLinkAbi,
             eventName: "VoucherIssued",
             args: { campaignId: CAMPAIGN_ID },
-            fromBlock: 0n,
+            fromBlock: CONTRACT_DEPLOYMENT_BLOCK,
           }),
           publicClient.getContractEvents({
             address: CONTRACT_ADDRESS,
             abi: mealLinkAbi,
             eventName: "VoucherRedeemed",
             args: { campaignId: CAMPAIGN_ID },
-            fromBlock: 0n,
+            fromBlock: CONTRACT_DEPLOYMENT_BLOCK,
           }),
         ]);
         const items: ChainEvent[] = [
@@ -137,12 +149,20 @@ export default function TransparencyPage() {
         <div className="page-heading">
           <div>
             <Eyebrow>
-              {IS_DEMO_MODE ? "데모 데이터" : "로컬 온체인 데이터"}
+              {IS_DEMO_MODE
+                ? "데모 데이터"
+                : `${ACTIVE_NETWORK_NAME} 온체인 데이터`}
             </Eyebrow>
             <h1>전달 현황</h1>
             <p>후원된 식사권이 어디까지 이어졌는지 확인하세요.</p>
           </div>
-          <DemoTag>{IS_DEMO_MODE ? "DEMO" : "LOCAL BLOCKCHAIN"}</DemoTag>
+          <DemoTag>
+            {IS_DEMO_MODE
+              ? "DEMO"
+              : IS_SEPOLIA
+                ? "SEPOLIA TESTNET"
+                : "LOCAL BLOCKCHAIN"}
+          </DemoTag>
         </div>
         <WalletPanel />
         {eventError && <Notice tone="warm">{eventError}</Notice>}
@@ -252,9 +272,20 @@ export default function TransparencyPage() {
                       <small>
                         {event.type} · 블록 #{event.blockNumber?.toString()}
                         <br />
-                        <span className="hash-text">
-                          {event.transactionHash}
-                        </span>
+                        {transactionExplorerUrl(event.transactionHash) ? (
+                          <a
+                            className="hash-text"
+                            href={transactionExplorerUrl(event.transactionHash)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Etherscan에서 트랜잭션 확인
+                          </a>
+                        ) : (
+                          <span className="hash-text">
+                            {event.transactionHash}
+                          </span>
+                        )}
                       </small>
                     </div>
                   </div>
@@ -275,9 +306,20 @@ export default function TransparencyPage() {
               않고 해시만 기록합니다.
             </span>
           </div>
-          <span className="fake-address">
-            {IS_DEMO_MODE ? "DEMO DATA" : "NO EXPLORER · LOCAL"}
-          </span>
+          {addressExplorerUrl(CONTRACT_ADDRESS) ? (
+            <a
+              className="fake-address"
+              href={addressExplorerUrl(CONTRACT_ADDRESS)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              컨트랙트 · ETHERSCAN
+            </a>
+          ) : (
+            <span className="fake-address">
+              {IS_DEMO_MODE ? "DEMO DATA" : "NO EXPLORER · LOCAL"}
+            </span>
+          )}
         </div>
       </div>
     </section>

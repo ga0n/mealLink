@@ -7,6 +7,13 @@ import {
   hashQrSecret,
   parseLocalVoucher,
 } from "./qr";
+import {
+  latestActiveTransaction,
+  loadTransactions,
+  savePendingTransaction,
+  updateStoredTransaction,
+} from "./pending";
+import { getPublicConfigurationError } from "./mode";
 
 describe("web3 utilities", () => {
   it("creates an unpredictable 32-byte secret and hashes it", () => {
@@ -41,5 +48,25 @@ describe("web3 utilities", () => {
       "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     );
     expect(shortenAddress(LOCAL_ACCOUNTS.donor)).toBe("0x90F7…b906");
+  });
+
+  it("persists and recovers an onchain transaction receipt state", () => {
+    localStorage.clear();
+    const hash = `0x${"12".repeat(32)}` as const;
+    savePendingTransaction(hash, "donate");
+    expect(latestActiveTransaction()).toMatchObject({
+      hash,
+      action: "donate",
+      status: "pending",
+    });
+    updateStoredTransaction(hash, "confirmed", 123n);
+    expect(loadTransactions()[0]).toMatchObject({
+      status: "confirmed",
+      blockNumber: "123",
+    });
+  });
+
+  it("does not require onchain configuration in demo mode", () => {
+    expect(getPublicConfigurationError()).toBeUndefined();
   });
 });
